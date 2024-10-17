@@ -45,18 +45,18 @@ restore_postgres_dump () {
 		GRANT ALL ON SCHEMA public TO $POSTGRES_USER;
 		ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO PUBLIC;
 		EOF
-	
+
 # 		PGPASSWORD="$POSTGRES_PASSWORD" \
 # 		psql -d "$POSTGRES_DB" -h postgres -U "$POSTGRES_USER" <<- EOF
 # 			\l
 # 			\d
 # 			SELECT * FROM oc_preferences WHERE appid='cookbook';
 # 			EOF
-	
+
 	echo 'Inserting dump data'
 	PGPASSWORD="$POSTGRES_PASSWORD" \
 	psql -d "$POSTGRES_DB" -h postgres -U "$POSTGRES_USER" -f "$SF_DIR/sql/dump.sql" -v 'ON_ERROR_STOP=1' || exit 1
-	
+
 # 		PGPASSWORD="$POSTGRES_PASSWORD" \
 # 		psql -d "$POSTGRES_DB" -h postgres -U "$POSTGRES_USER" <<- EOF
 # 			SELECT * FROM oc_preferences WHERE appid='cookbook';
@@ -82,7 +82,7 @@ start_container() {
 restore_db_synced_data() {
 	local db_path="/db/${1}"
 	echo "Restoring synced DB data from $SF_DIR/sql to $db_path"
-	sudo rsync -a --delete --delete-delay "$SF_DIR/sql/" "$db_path"
+	sudo rsync -a --delete --delete-before "$SF_DIR/sql/" "$db_path"
 }
 
 test_mysql_is_running() {
@@ -129,7 +129,7 @@ restore_postgres_sync () {
 # exec >> /output/reset.log 2>&1
 
 echo "Cloning data files"
-rsync --archive --delete --delete-delay "$SF_DIR/data/" /var/www/html/data/
+rsync --archive --delete --delete-before "$SF_DIR/data/" /var/www/html/data/
 
 echo "Restoring DB"
 case "$INPUT_DB" in

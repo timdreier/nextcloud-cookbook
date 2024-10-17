@@ -59,7 +59,7 @@ export QUICK_MODE
 printCI "::group::Test prepatation in container"
 
 echo "Synchronizing cookbook codebase"
-rsync -a /cookbook/ custom_apps/cookbook/ --delete --delete-delay --delete-excluded --exclude /.git --exclude /.github/actions/run-tests/volumes --exclude /docs --exclude /node_modules/
+rsync -a /cookbook/ custom_apps/cookbook/ --delete --delete-before --delete-excluded --exclude /.git --exclude /.github/actions/run-tests/volumes --exclude /docs --exclude /node_modules/
 
 pushd custom_apps/cookbook
 
@@ -74,7 +74,7 @@ fi
 if [ $BUILD_NPM = 'y' ]; then
 	echo 'Installing NPM packages'
 	npm ci
-	
+
 	echo 'Building JS folder'
 	npm run build
 fi
@@ -132,7 +132,7 @@ if [ $CREATE_COVERAGE_REPORT = 'y' ]; then
 			sed -i -f /helper/style.sed "$f/_css/style.css"
 		fi
 	done
-	
+
 	NAME="run-$(date "+%Y-%m-%d_%H-%M-%S")"
 	echo "Moving coverage report to final destination $NAME"
 	cd /coverage

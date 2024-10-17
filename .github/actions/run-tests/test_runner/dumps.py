@@ -15,12 +15,12 @@ except ImportError:
 	useTabulate = False
 
 class SubFixture:
-	
-	rsyncArgs = ['--delete', '--delete-delay', '--delete-excluded', '--archive']
+
+	rsyncArgs = ['--delete', '--delete-before', '--delete-excluded', '--archive']
 
 	def __init__(self):
 		pass
-	
+
 	def __cloneFiles(self, subFixturePath):
 		l.logger.printTask('Save the data files')
 		p.pr.run(
@@ -46,7 +46,7 @@ class SubFixture:
 			p.pr.run(
 				['rsync', '{path}/nextcloud/'.format(path=subFixturePath), 'volumes/nextcloud/'] + SubFixture.rsyncArgs
 			).check_returncode()
-		
+
 		l.logger.printTask('Restoring of files has been done')
 
 	def __createSQLDump(self, path, db):
@@ -69,7 +69,7 @@ class SubFixture:
 			'sqlite': handleSqlite,
 		}
 		mapping[db]()
-	
+
 	def __restoreSQLDump(self, path, db):
 		sqlFileName = '{path}/dump.sql'.format(path=path)
 
@@ -142,7 +142,7 @@ class SubFixture:
 		env.startDatabase(db)
 
 	def __createDbDump(self, subFixturePath, db, sql_type):
-		
+
 		sqlPath = '{path}/sql'.format(path=subFixturePath)
 
 		def handleDump():
@@ -164,9 +164,9 @@ class SubFixture:
 		l.logger.printTask('Creating clone of the database')
 		mapping[sql_type]()
 		l.logger.printTask('Database clone was created')
-	
+
 	def __restoreDbDump(self, subFixturePath, db, sql_type):
-		
+
 		sqlPath = '{path}/sql'.format(path=subFixturePath)
 
 		def handleDump():
@@ -210,16 +210,16 @@ class Fixture:
 	def __init__(self, name):
 		self.name = name
 		self.path = 'volumes/dumps/fixtures/{name}'.format(name=name)
-	
+
 	def readConfig(self):
 		configFile = '{path}/config.json'.format(path=self.path)
 
 		if not os.path.exists(configFile):
 			raise Exception('No config file was found for fixture {fix}'.format(fix=self.name))
-		
+
 		with open(configFile, 'r') as fp:
 			config = json.load(fp)
-		
+
 		return config
 
 	def __writeConfigFile(self, fixtureConfig, finished=False, version=1):
@@ -243,11 +243,11 @@ class Fixture:
 
 			if not os.path.isdir(self.path):
 				raise Exception('The given name of the fixture is no folder. Aborting.')
-			
+
 			if os.path.exists('{path}/config.json'.format(path=self.path)):
 				config = self.readConfig()
 				version = config.get('version', 0)
-				
+
 				if version > Fixture.version:
 					raise Exception('Cannot do a back-migration of the fixture. Please update source code.')
 				elif version < Fixture.version:
@@ -257,22 +257,22 @@ class Fixture:
 					os.mkdir(self.path)
 			else:
 				raise Exception('Migration of dump without config is not supported yet.')
-			
+
 		else:
 			os.mkdir(self.path)
 		# Main fixture path is present now
-		
+
 		# Create the required paths in the folder
 		for p in ('main', 'plain'):
 			pName = '{path}/{name}'.format(path=self.path, name=p)
 			if not os.path.isdir(pName):
 				os.mkdir(pName)
-			
+
 			for p1 in ('sql', 'data', 'nextcloud'):
 				p1Name = '{path}/{name}'.format(path=pName, name=p1)
 				if not os.path.isdir(p1Name):
 					os.mkdir(p1Name)
-		
+
 		# Initialize the config file
 		self.__writeConfigFile(fixtureConfig, False)
 
@@ -280,7 +280,7 @@ class Fixture:
 
 	def markAsFinished(self, fixtureConfig):
 		self.__writeConfigFile(fixtureConfig, True)
-	
+
 	def getPath(self):
 		return self.path
 
@@ -290,12 +290,12 @@ class Fixture:
 class CurrentFixture:
 	def __init__(self):
 		self.path = 'volumes/dumps/current'
-	
+
 	def validate(self):
 		if os.path.islink(self.path) and not os.path.exists(self.path):
 			# Broken symlink
 			os.remove(self.path)
-		
+
 	def set(self, name):
 		fixture = Fixture(name)
 		fixture.readConfig()
@@ -306,12 +306,12 @@ class CurrentFixture:
 			p.pr.run(['sudo', 'rm', '-rf', self.path]).check_returncode()
 		elif os.path.exists(self.path):
 			raise Exception('Unknown typo of object for current fixture')
-		
+
 		os.symlink('fixtures/{name}'.format(name=name), self.path, target_is_directory=True)
 
 	def hasCurrent(self):
 		return os.path.exists(self.path)
-	
+
 	def getName(self):
 		if not os.path.islink(self.path):
 			return None
@@ -321,7 +321,7 @@ class CurrentFixture:
 		if match is None:
 			raise Exception('Cannot parse name of current fixture. Please fix manually')
 		return match.group(1)
-		
+
 class DumpsManager:
 	def __init__(self):
 		self.path = 'volumes/dumps'
@@ -343,7 +343,7 @@ class DumpsManager:
 					'version': 1
 				}
 				json.dump(config, fp)
-		
+
 		fixturesPath = '{path}/fixtures'.format(path=self.path)
 		if not os.path.isdir(fixturesPath):
 			os.mkdir(fixturesPath)
@@ -354,7 +354,7 @@ class DumpsManager:
 		entries = os.listdir('{path}/fixtures'.format(path=self.path))
 
 		return entries
-	
+
 	def listFixtures(self):
 		if useTabulate:
 			fixtures = self.getFixtures()
@@ -373,7 +373,7 @@ class DumpsManager:
 				db = x['config']['db']
 				if db in ('mysql', 'pgsql'):
 					db = '{db} ({type})'.format(db=db, type=x['config']['sql_type'][0])
-				
+
 				entry = [
 					x['name'], x['active'], x['config']['description'], x['config']['branch'], db, x['config']['php_version']
 				]
